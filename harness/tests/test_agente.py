@@ -41,6 +41,21 @@ def test_e06_pregunta_sin_tools(agente):
     assert "¿" in turno["respuesta"]
 
 
+def test_datos_paciente_obligatorios(agente):
+    turno = agente.responder("pediatría el 2026-11-02 a las 08:00", "missing-patient")
+    assert turno["tools_usadas"] == []
+    assert "nombre" in turno["respuesta"]
+
+
+def test_cancelar_despues_de_reservar_misma_sesion(agente):
+    agente.responder(
+        "pediatría el 2026-11-02 a las 08:00. Soy Test Paciente, documento 12345678",
+        "same",
+    )
+    turno = agente.responder("cancelar mi cita documento 12345678", "same")
+    assert "CANCELADA" in turno["respuesta"]
+
+
 def test_e07_memoria_conversacional(agente):
     sesion = "s-e07"
     agente.responder("Hola, necesito una cita.", sesion)

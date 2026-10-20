@@ -41,7 +41,8 @@ class MockLLM:
     ) -> LLMRespuesta:
         all_user = "\n".join(m["content"] for m in messages if m["role"] == "user")
         low = all_user.lower()
-        tool_msgs = [m for m in messages if m["role"] == "tool"]
+        last_user = max(i for i, m in enumerate(messages) if m["role"] == "user")
+        tool_msgs = [m for m in messages[last_user + 1 :] if m["role"] == "tool"]
         last = json.loads(tool_msgs[-1]["content"]) if tool_msgs else None
 
         if "clima" in low:
@@ -178,7 +179,7 @@ class MockLLM:
         if not self._hora(all_user):
             return LLMRespuesta(texto=self.PREG_HORA)
         nombre, doc = self._paciente(all_user)
-        if not doc:
+        if not doc or not nombre:
             return LLMRespuesta(texto=self.PREG_PACIENTE)
         return None
 
@@ -205,7 +206,7 @@ class MockLLM:
         if m:
             return m.group(1).strip(), m.group(2)
         generic = re.search(r"\b(\d{8})\b", all_user)
-        return "Paciente Sin Nombre", (generic.group(1) if generic else "00000000")
+        return "", (generic.group(1) if generic else "")
 
     def _tc(self, name: str, args: dict[str, Any]) -> dict[str, Any]:
         return {
