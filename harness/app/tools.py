@@ -1,13 +1,15 @@
 # Registro de tools (5, decisión D3) con JSON Schema para el LLM.
 # Los URI (endpoints) nacen del contrato §4: mismo contrato que tests y ms-citas.
-import json
 import time
 import uuid
 from typing import Any
 
 import httpx
 
-from config import CONFIG
+from app.config import CONFIG
+
+# Hook para tests: inyectar httpx.MockTransport sin red (None = HTTP real)
+_TRANSPORT: httpx.BaseTransport | None = None
 
 
 class ToolError(Exception):
@@ -19,14 +21,16 @@ class ToolError(Exception):
 
 
 def _client() -> httpx.Client:
-    return httpx.Client(timeout=CONFIG.HTTP_TIMEOUT_MS / 1000)
+    return httpx.Client(timeout=CONFIG.HTTP_TIMEOUT_MS / 1000, transport=_TRANSPORT)
 
 
 def listar_medicos() -> list[dict[str, Any]]:
     with _client() as c:
         r = c.get(f"{CONFIG.MS_AGENDA_URL}/api/v1/medicos")
         if r.status_code != 200:
-            raise ToolError(r.status_code, "AGENDA_NO_DISPONIBLE", "No se pudo listar médicos")
+            raise ToolError(
+                r.status_code, "AGENDA_NO_DISPONIBLE", "No se pudo listar médicos"
+            )
         return r.json()
 
 
@@ -46,14 +50,18 @@ def ver_disponibilidad(medico_id: str, fecha: str) -> dict[str, Any]:
         return r.json()
 
 
-def reservar_cita(paciente: dict[str, str], medico_id: str, fecha: str, hora: str) -> dict[str, Any]:
+def reservar_cita(
+    paciente: dict[str, str], medico_id: str, fecha: str, hora: str
+) -> dict[str, Any]:
     body = {
         "paciente": {"nombre": paciente["nombre"], "documento": paciente["documento"]},
         "medico_id": medico_id,
         "fecha": fecha,
         "hora": hora,
     }
-    headers = {"Idempotency-Key": str(uuid.uuid4())}  # reintentos del agente no duplican
+    headers = {
+        "Idempotency-Key": str(uuid.uuid4())
+    }  # reintentos del agente no duplican
     with _client() as c:
         r = c.post(f"{CONFIG.MS_CITAS_URL}/api/v1/citas", json=body, headers=headers)
         payload = None
@@ -65,7 +73,10 @@ def reservar_cita(paciente: dict[str, str], medico_id: str, fecha: str, hora: st
             err = payload.get("error") or payload
             raise ToolError(
                 r.status_code,
-                err.get("code", "AGENDA_NO_DISPONIBLE" if r.status_code >= 500 else "VALIDACION"),
+                err.get(
+                    "code",
+                    "AGENDA_NO_DISPONIBLE" if r.status_code >= 500 else "VALIDACION",
+                ),
                 err.get("message", "No se pudo reservar la cita"),
             )
         return payload
@@ -82,7 +93,10 @@ def cancelar_cita(cita_id: str) -> dict[str, Any]:
             err = payload.get("error") or payload
             raise ToolError(
                 r.status_code,
-                err.get("code", "AGENDA_NO_DISPONIBLE" if r.status_code >= 500 else "VALIDACION"),
+                err.get(
+                    "code",
+                    "AGENDA_NO_DISPONIBLE" if r.status_code >= 500 else "VALIDACION",
+                ),
                 err.get("message", "No se pudo cancelar la cita"),
             )
         return payload
@@ -90,7 +104,9 @@ def cancelar_cita(cita_id: str) -> dict[str, Any]:
 
 def listar_citas(documento: str) -> dict[str, Any]:
     with _client() as c:
-        r = c.get(f"{CONFIG.MS_CITAS_URL}/api/v1/citas", params={"documento": documento})
+        r = c.get(
+            f"{CONFIG.MS_CITAS_URL}/api/v1/citas", params={"documento": documento}
+        )
         if r.status_code != 200:
             body = r.json() if r.status_code < 500 else {}
             raise ToolError(
@@ -199,19 +215,32 @@ def ejecutar_tool(nombre: str, args: dict[str, Any]) -> dict[str, Any]:
     t0 = time.perf_counter()
     fn = EXECUTORS.get(nombre)
     if fn is None:
-        return {"ok": False, "code": "TOOL_DESCONOCIDA", "message": f"Tool '{nombre}' no existe"}
+        return {
+            "ok": False,
+            "code": "TOOL_DESCONOCIDA",
+            "message": f"Tool '{nombre}' no existe",
+        }
     try:
         out = fn(**args)
         return {"ok": True, "result": out, "tool": nombre, "ms": _ms(t0)}
     except ToolError as e:
-        return {"ok": False, "code": e.code, "message": e.message, "status": e.status, "tool": nombre, "ms": _ms(t0)}
+        return {
+            "ok": False,
+            "code": e.code,
+            "message": e.message,
+            "status": e.status,
+            "tool": nombre,
+            "ms": _ms(t0),
+        }
     except Exception as e:  # httpx.TimeoutException, etc.
-        return {"ok": False, "code": "HARNESS_TIMEOUT", "message": f"Error al ejecutar tool: {e}", "tool": nombre, "ms": _ms(t0)}
+        return {
+            "ok": False,
+            "code": "HARNESS_TIMEOUT",
+            "message": f"Error al ejecutar tool: {e}",
+            "tool": nombre,
+            "ms": _ms(t0),
+        }
 
 
 def _ms(t0: float) -> int:
     return int((time.perf_counter() - t0) * 1000)
-
-
-def transcript_riche(nombre: str, args: dict[str, Any], resultado: dict[str, Any]) -> str:
-    return json.dumps({"tool": nombre, "args": args, "resultado": resultado}, ensure_ascii=False)

@@ -1,4 +1,4 @@
-export type Especialidad = 'PEDIATRIA' | 'MEDICINA_GENERAL' | 'ODONTOLOGIA';
+export type Especialidad = "PEDIATRIA" | "MEDICINA_GENERAL" | "ODONTOLOGIA";
 
 export interface Medico {
   id: string;
@@ -22,7 +22,7 @@ export interface Slot {
 
 /** Semana de 0=lunes a 6=domingo. diaSemana del medico desde 'YYYY-MM-DD' (UTC, sin TZ drift). */
 export function diaSemanaDeFecha(fecha: string): number {
-  const [y, m, d] = fecha.split('-').map(Number);
+  const [y, m, d] = fecha.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   const iso = dt.getUTCDay(); // 0=domingo ... 6=sabado
   return (iso + 6) % 7; // 0=lunes ... 6=domingo
@@ -30,7 +30,7 @@ export function diaSemanaDeFecha(fecha: string): number {
 
 /** Convierte "HH:MM" a minutos desde 00:00. */
 export function horaAMinutos(hhmm: string): number {
-  const [h, m] = hhmm.split(':').map(Number);
+  const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
 
@@ -38,7 +38,7 @@ export function horaAMinutos(hhmm: string): number {
 export function minutosAHora(min: number): string {
   const h = Math.floor(min / 60);
   const m = min % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 /**

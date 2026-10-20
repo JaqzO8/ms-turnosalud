@@ -1,6 +1,6 @@
-import { Pool } from 'pg';
-import { Medico, FranjaBase } from '../domain.js';
-import { SEED_MEDICOS, SEED_FRANJAS, Repo } from './memory.js';
+import { Pool } from "pg";
+import { Medico, FranjaBase } from "../domain.js";
+import { SEED_MEDICOS, SEED_FRANJAS, Repo } from "./memory.js";
 
 export function crearRepoPg(pool: Pool): Repo {
   return {
@@ -31,18 +31,36 @@ export function crearRepoPg(pool: Pool): Repo {
   };
 }
 
-function rToMedico(r: any): Medico {
-  return { id: r.id, nombre: r.nombre, especialidad: r.especialidad, activo: r.activo };
+interface Row {
+  id: string;
+  nombre: string;
+  especialidad: string;
+  activo: boolean;
+}
+
+function rToMedico(r: Row): Medico {
+  return {
+    id: r.id,
+    nombre: r.nombre,
+    especialidad: r.especialidad as Medico["especialidad"],
+    activo: r.activo,
+  };
 }
 
 /** El driver devuelve TIME con formatos distintos según la versión: normaliza a "HH:MM". */
 function aHHMM(v: unknown): string {
-  if (typeof v === 'object' && v && 'hours' in (v as any)) {
+  if (typeof v === "object" && v !== null && "hours" in v) {
     const t = v as { hours: number; minutes: number };
-    return `${String(t.hours).padStart(2, '0')}:${String(t.minutes).padStart(2, '0')}`;
+    const h = String(t.hours).padStart(2, "0");
+    const m = String(t.minutes).padStart(2, "0");
+    return `${h}:${m}`;
   }
-  const s = String(v).slice(0, 5);
-  return s.length === 4 ? s + '' : s;
+  const s = String(v);
+  if (/^\d{1,2}:\d{2}$/.test(s)) {
+    const [h, m] = s.split(":");
+    return `${h.padStart(2, "0")}:${m}`;
+  }
+  return s.slice(0, 5);
 }
 
 /** DDL + seed idempotente; se ejecuta en el arranque del servicio. */
@@ -54,6 +72,8 @@ export async function migrarYSeed(pool: Pool): Promise<void> {
       especialidad TEXT NOT NULL CHECK (especialidad IN ('PEDIATRIA','MEDICINA_GENERAL','ODONTOLOGIA')),
       activo BOOLEAN NOT NULL DEFAULT true
     );
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS franjas_horarias (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       medico_id UUID NOT NULL REFERENCES medicos(id),

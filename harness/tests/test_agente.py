@@ -4,13 +4,13 @@ import json
 import pathlib
 
 import pytest
-
-import tools
-from agent import Agente
-from config import CONFIG
-from evals import correr_evals
-from llm import LLMRespuesta, MockLLM
 from fakes import FakeCitaStore, crear_fakes
+
+import app.tools as tools
+from app.agent import Agente
+from app.config import CONFIG
+from app.evals import correr_evals
+from app.llm import LLMRespuesta, MockLLM
 
 
 @pytest.fixture
@@ -24,7 +24,15 @@ def test_evals_verdes(agente):
     res = correr_evals(agente)
     fallas = [r for r in res if not r["ok"]]
     assert not fallas, fallas
-    assert [r["id"] for r in res] == ["E-01", "E-02", "E-03", "E-04", "E-05", "E-06", "E-07"]
+    assert [r["id"] for r in res] == [
+        "E-01",
+        "E-02",
+        "E-03",
+        "E-04",
+        "E-05",
+        "E-06",
+        "E-07",
+    ]
 
 
 def test_e06_pregunta_sin_tools(agente):
@@ -38,7 +46,9 @@ def test_e07_memoria_conversacional(agente):
     agente.responder("Hola, necesito una cita.", sesion)
     agente.responder("con odontología", sesion)
     agente.responder("el 2026-11-03", sesion)
-    final = agente.responder("a las 09:30. Soy Ramiro Sedano, documento 55778899", sesion)
+    final = agente.responder(
+        "a las 09:30. Soy Ramiro Sedano, documento 55778899", sesion
+    )
     assert any(t["name"] == "reservar_cita" and t["ok"] for t in final["tools_usadas"])
 
 

@@ -4,9 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
+    "start": "node dist/server.js",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*\" \"tests/**/*\" \"*.json\"",
+    "format:check": "prettier --check \"src/**/*\" \"tests/**/*\" \"*.json\"",
     "test": "vitest run"
   },
   "dependencies": {
@@ -15,12 +18,17 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/express": "^4.17.21",
     "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
+    "@vitest/coverage-v8": "^2.1.9",
+    "eslint": "^10.13.0",
+    "prettier": "^3.9.10",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.72.0",
     "vitest": "^2.1.8"
   }
 }

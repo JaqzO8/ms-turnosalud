@@ -1,8 +1,10 @@
 # Subsistema de ajustes (config) del harness de agente IA
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 class Config:
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
@@ -21,5 +23,6 @@ class Config:
     FIXED_TODAY: str = os.getenv("FIXED_TODAY", "2026-11-02")
 
     LOGS_DIR: str = os.getenv("LOGS_DIR", "logs")
+
 
 CONFIG = Config()

@@ -1,13 +1,20 @@
-# API HTTP del harness (T-07). CLI alternativa: uvicorn app:app --port 3003
-from fastapi import FastAPI
-from pydantic import BaseModel
+# API HTTP del harness (T-07). Servida con uvicorn app.main:app en :3003 y sirve la UI de chat.
 import threading
+from pathlib import Path
 
-from config import CONFIG
-from agent import Agente
-from evals import correr_evals
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
-app = FastAPI(title="harness-agent", version="0.1.0", description="Recepcionista IA del centro de salud rural (TURNO-SALUD)")
+from app.agent import Agente
+from app.config import CONFIG
+from app.evals import correr_evals
+
+app = FastAPI(
+    title="harness-agent",
+    version="0.1.0",
+    description="Recepcionista IA del centro de salud rural (TURNO-SALUD)",
+)
 
 _lock = threading.Lock()
 _agent: Agente | None = None
@@ -28,7 +35,11 @@ class ChatIn(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "mock_llm": CONFIG.MOCK_LLM, "fixed_today": CONFIG.FIXED_TODAY}
+    return {
+        "status": "ok",
+        "mock_llm": CONFIG.MOCK_LLM,
+        "fixed_today": CONFIG.FIXED_TODAY,
+    }
 
 
 @app.post("/chat")
@@ -47,3 +58,8 @@ def evals():
         "ok": ok_count,
         "resultados": resultados,
     }
+
+
+# UI de chat (frontend ligero servido por el mismo harness en GET /)
+_STATIC = Path(__file__).resolve().parent / "static"
+app.mount("/", StaticFiles(directory=str(_STATIC), html=True), name="ui")

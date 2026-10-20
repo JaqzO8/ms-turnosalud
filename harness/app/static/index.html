@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>TURNO-SALUD · Recepcionista IA</title>
+<style>
+  :root { --bg:#0b1220; --panel:#111a2b; --line:#223047; --txt:#e7eefc; --mut:#93a4c3; --acc:#38bdf8; --ok:#34d399; --err:#f87171; }
+  * { box-sizing:border-box; margin:0; }
+  body { background:var(--bg); color:var(--txt); font:16px/1.5 "Segoe UI",system-ui,sans-serif; display:flex; flex-direction:column; height:100vh; }
+  header { padding:14px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
+  header h1 { font-size:18px; font-weight:600; }
+  header .tag { margin-left:auto; font-size:12px; color:var(--mut); border:1px solid var(--line); padding:4px 10px; border-radius:999px; }
+  main { flex:1; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:12px; }
+  .msg { max-width:70%; padding:10px 14px; border-radius:12px; white-space:pre-wrap; }
+  .usuario { align-self:flex-end; background:#1d4ed8; border-radius:12px 12px 2px 12px; }
+  .agentes { align-self:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:12px 12px 12px 2px; }
+  .tools { align-self:flex-start; font-size:12px; color:var(--mut); }
+  .tools b { color:var(--acc); font-weight:600; }
+  footer { border-top:1px solid var(--line); padding:12px 22px; display:flex; gap:10px; }
+  input { flex:1; background:var(--panel); border:1px solid var(--line); color:var(--txt); border-radius:10px; padding:12px 14px; font-size:15px; outline:none; }
+  input:focus { border-color:var(--acc); }
+  button { background:var(--acc); border:none; color:#04121f; font-weight:700; border-radius:10px; padding:12px 20px; cursor:pointer; }
+  button.sec { background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:500; }
+  button:disabled { opacity:.5; cursor:wait; }
+  .inicio { color:var(--mut); text-align:center; margin:auto; }
+  .inicio small { display:block; margin-top:8px; }
+  .banner { align-self:flex-start; font-size:12px; padding:6px 12px; border-radius:999px; border:1px solid var(--line); color:var(--mut); }
+  .banner.ok { color:#0b2f21; background:var(--ok); border-color:var(--ok); font-weight:600; }
+  .banner.err { color:#3b0606; background:var(--err); border-color:var(--err); font-weight:600; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏥 TURNO-SALUD · Recepcionista IA</h1>
+  <span class="tag" id="modo">cargando…</span>
+</header>
+<main id="chat">
+  <div class="inicio">Escribe aquí en lenguaje natural.<small>«quiero una cita» · «¿qué médicos hay?» · «quiero cancelar mi cita, documento 12345678»</small></div>
+</main>
+<footer>
+  <input id="mensaje" placeholder="Soy María, documento 12345678. Quiero cita con pediatría…" autofocus />
+  <button id="enviar">Enviar</button>
+  <button class="sec" id="evals" title="Corre los evals E-01..E-07">Evals</button>
+</footer>
+<script>
+const chat = document.getElementById("chat");
+const inp = document.getElementById("mensaje");
+const btn = document.getElementById("enviar");
+const btnEvals = document.getElementById("evals");
+const sesion = localStorage.getItem("sesion") || crypto.randomUUID();
+localStorage.setItem("sesion", sesion);
+
+fetch("/health").then(r => r.json()).then(h => {
+  document.getElementById("modo").textContent = h.mock_llm ? "MOCK_LLM (sin red)" : "LLM Groq activo";
+});
+
+function add(el) { chat.appendChild(el); chat.scrollTop = chat.scrollHeight; }
+function burbuja(clase, texto) { const d = document.createElement("div"); d.className = "msg " + clase; d.textContent = texto; add(d); }
+function lineaTools(tools) {
+  if (!tools || !tools.length) return;
+  const d = document.createElement("div"); d.className = "tools";
+  d.innerHTML = "🔧 " + tools.map(t => `<b>${t.name}</b>${t.ok === false ? " ✗" : ""}`).join(" → ");
+  add(d);
+}
+
+async function send() {
+  const texto = inp.value.trim();
+  if (!texto) return;
+  burbuja("usuario", texto); inp.value = ""; inp.focus();
+  btn.disabled = true;
+  try {
+    const r = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mensaje: texto, sesion_id: sesion }) });
+    const t = await r.json();
+    lineaTools(t.tools_usadas);
+    burbuja("agentes", t.respuesta || "(sin respuesta)");
+  } catch (e) {
+    burbuja("agentes", "⚠ No pude contactar al harness: " + e);
+  } finally { btn.disabled = false; }
+}
+
+btn.onclick = send;
+inp.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+btnEvals.onclick = async () => {
+  burbuja("usuario", "(corriendo eval suite…)");
+  try {
+    const r = await fetch("/evals"); const e = await r.json();
+    e.resultados.forEach(x => burbuja(x.ok ? "banner ok" : "banner err", `${x.id} ${x.ok ? "✓" : "✗"} — esperado: ${x.esperado}`));
+    burbuja("agentes", `Evals ${e.ok}/${e.total} verdes (provider ${e.provider}). Sesión reiniciada a limpio con herramientas reales.`);
+  } catch (err) {
+    burbuja("agentes", "⚠ Falló /evals: " + err);
+  }
+};
+</script>
+</body>
+</html>

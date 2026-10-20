@@ -6,9 +6,9 @@ import time
 import uuid
 from typing import Any
 
-from config import CONFIG
-from llm import LLMRespuesta, crear_llm
-from tools import TOOLS_SPEC, ejecutar_tool
+from app.config import CONFIG
+from app.llm import LLMRespuesta, crear_llm
+from app.tools import TOOLS_SPEC, ejecutar_tool
 
 
 class Agente:
@@ -57,7 +57,12 @@ class Agente:
                         args = {}
                     resultado = ejecutar_tool(nombre, args)
                     tools_usadas.append(
-                        {"name": nombre, "args": args, "ok": resultado.get("ok", False), "code": resultado.get("code")}
+                        {
+                            "name": nombre,
+                            "args": args,
+                            "ok": resultado.get("ok", False),
+                            "code": resultado.get("code"),
+                        }
                     )
                     mensajes.append(
                         {
@@ -83,7 +88,7 @@ class Agente:
         return turno
 
     def _system_prompt(self) -> str:
-        from tools import SYSTEM_PROMPT
+        from app.tools import SYSTEM_PROMPT
 
         return SYSTEM_PROMPT.replace("{hoy}", CONFIG.FIXED_TODAY)
 
@@ -91,7 +96,9 @@ class Agente:
         """Observabilidad: un JSONL por sesión en harness/logs/."""
         try:
             os.makedirs(CONFIG.LOGS_DIR, exist_ok=True)
-            path = os.path.join(CONFIG.LOGS_DIR, f"sesion-{registro['sesion_id']}.jsonl")
+            path = os.path.join(
+                CONFIG.LOGS_DIR, f"sesion-{registro['sesion_id']}.jsonl"
+            )
             with open(path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(registro, ensure_ascii=False) + "\n")
         except OSError:

@@ -2,12 +2,18 @@
 # según el plan y su seed (D6): FIXED_TODAY = lunes 2026-11-02.
 # E-02 (anti doble reserva) y E-07 (multi-turno) usan rondas repetidas/mismo
 # horario de sesión; se evalúa SIEMPRE el resultado de la ÚLTIMA ronda.
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 
 class Eval:
-    def __init__(self, id_: str, prompts: list[str], esperado: Callable[[dict[str, Any]], tuple[bool, str]],
-                 misma_sesion: bool = False):
+    def __init__(
+        self,
+        id_: str,
+        prompts: list[str],
+        esperado: Callable[[dict[str, Any]], tuple[bool, str]],
+        misma_sesion: bool = False,
+    ):
         self.id = id_
         self.prompts = prompts
         self.esperado = esperado
@@ -20,7 +26,10 @@ def _reserva_exitosa(r: dict[str, Any]) -> tuple[bool, str]:
         return True, "reservar_cita ok + CONFIRMADA en respuesta"
     if reservas and reservas[0]["ok"]:
         return False, "reservó pero no confirmó en la respuesta"
-    return False, f"no reservó (tools={[(t['name'], t.get('code')) for t in r['tools_usadas']]})"
+    return (
+        False,
+        f"no reservó (tools={[(t['name'], t.get('code')) for t in r['tools_usadas']]})",
+    )
 
 
 def _reserva_rehusada_alternativas(r: dict[str, Any]) -> tuple[bool, str]:
@@ -28,8 +37,14 @@ def _reserva_rehusada_alternativas(r: dict[str, Any]) -> tuple[bool, str]:
     if any(t["ok"] for t in reservas):
         return False, "reservó de nuevo cuando debía rehusar"
     if any(t["name"] == "ver_disponibilidad" for t in r["tools_usadas"]):
-        return True, "consultó disponibilidad, rehusó la franja ocupada y dio alternativas"
-    return False, f"no consultó disponibilidad (tools={[t['name'] for t in r['tools_usadas']]})"
+        return (
+            True,
+            "consultó disponibilidad, rehusó la franja ocupada y dio alternativas",
+        )
+    return (
+        False,
+        f"no consultó disponibilidad (tools={[t['name'] for t in r['tools_usadas']]})",
+    )
 
 
 def _especialidad_no_atendida(r: dict[str, Any]) -> tuple[bool, str]:
@@ -39,13 +54,19 @@ def _especialidad_no_atendida(r: dict[str, Any]) -> tuple[bool, str]:
         return True, "listó médicos y no reservó (respuesta honesta)"
     if not r["tools_usadas"]:
         return True, "pidió aclarar especialidad (datos incompletos), sin reservar"
-    return False, f"comportamiento inesperado (tools={[t['name'] for t in r['tools_usadas']]})"
+    return (
+        False,
+        f"comportamiento inesperado (tools={[t['name'] for t in r['tools_usadas']]})",
+    )
 
 
 def _cancelado(r: dict[str, Any]) -> tuple[bool, str]:
     if any(t["name"] == "cancelar_cita" and t["ok"] for t in r["tools_usadas"]):
         return True, "canceló la cita activa"
-    return False, f"no canceló (tools={[(t['name'], t.get('code')) for t in r['tools_usadas']]})"
+    return (
+        False,
+        f"no canceló (tools={[(t['name'], t.get('code')) for t in r['tools_usadas']]})",
+    )
 
 
 def _fuera_dominio(r: dict[str, Any]) -> tuple[bool, str]:
@@ -60,7 +81,9 @@ def _datos_incompletos_pregunta(r: dict[str, Any]) -> tuple[bool, str]:
     if r["tools_usadas"]:
         return False, "llamó a tools con datos incompletos (debería PREGUNTAR)"
     resp = r["respuesta"].lower()
-    if "?" in resp and any(k in resp for k in ("especialidad", "fecha", "hora", "documento")):
+    if "?" in resp and any(
+        k in resp for k in ("especialidad", "fecha", "hora", "documento")
+    ):
         return True, "preguntó por el dato faltante sin tocar tools"
     return False, "no preguntó por el dato faltante"
 
@@ -69,7 +92,9 @@ EVALS = [
     # D6: jueves = 2026-11-05 (franja pediatría 10:00 libre al iniciar)
     Eval(
         "E-01",
-        ["Soy María Flores, documento 12345678. Quiero una cita con pediatría el 2026-11-05 a las 10."],
+        [
+            "Soy María Flores, documento 12345678. Quiero una cita con pediatría el 2026-11-05 a las 10."
+        ],
         _reserva_exitosa,
     ),
     Eval(

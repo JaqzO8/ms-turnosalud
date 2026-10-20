@@ -6,11 +6,13 @@ import random
 import re
 from typing import Any
 
-from config import CONFIG
+from app.config import CONFIG
 
 
 class LLMRespuesta:
-    def __init__(self, texto: str | None = None, tool_calls: list[dict[str, Any]] | None = None):
+    def __init__(
+        self, texto: str | None = None, tool_calls: list[dict[str, Any]] | None = None
+    ):
         self.texto = texto
         self.tool_calls = tool_calls or []
 
@@ -34,7 +36,9 @@ class MockLLM:
     PREG_PACIENTE = "Para reservar necesito tu nombre completo y tu documento de identidad (8 dígitos)."
     PREG_DOC = "¿Cuál es tu documento de identidad (8 dígitos) para localizar tu cita?"
 
-    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMRespuesta:
+    def chat(
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]
+    ) -> LLMRespuesta:
         all_user = "\n".join(m["content"] for m in messages if m["role"] == "user")
         low = all_user.lower()
         tool_msgs = [m for m in messages if m["role"] == "tool"]
@@ -51,21 +55,35 @@ class MockLLM:
                 doc = re.search(r"\b(\d{8})\b", all_user)
                 if not doc:
                     return LLMRespuesta(texto=self.PREG_DOC)
-                return LLMRespuesta(tool_calls=[self._tc("listar_citas", {"documento": doc.group(1)})])
+                return LLMRespuesta(
+                    tool_calls=[self._tc("listar_citas", {"documento": doc.group(1)})]
+                )
             if last.get("ok") and last.get("tool") == "cancelar_cita":
                 cita = (last["result"] or {}).get("cita") or {}
                 return LLMRespuesta(
                     texto=f"Listo, tu cita quedó {cita.get('estado')}. Si necesitas otra, dime el día y la hora y te reservo."
                 )
             if last.get("ok"):
-                activas = [c for c in (last["result"].get("items") or []) if c.get("estado") == "CONFIRMADA"]
+                activas = [
+                    c
+                    for c in (last["result"].get("items") or [])
+                    if c.get("estado") == "CONFIRMADA"
+                ]
                 if activas:
                     c = activas[0]
-                    return LLMRespuesta(tool_calls=[self._tc("cancelar_cita", {"cita_id": c["id"]})])
-                return LLMRespuesta(texto="No encontré citas activas con ese documento. ¿Deseas reservar una nueva?")
+                    return LLMRespuesta(
+                        tool_calls=[self._tc("cancelar_cita", {"cita_id": c["id"]})]
+                    )
+                return LLMRespuesta(
+                    texto="No encontré citas activas con ese documento. ¿Deseas reservar una nueva?"
+                )
             if last.get("code") == "AGENDA_NO_DISPONIBLE":
-                return LLMRespuesta(texto="Ahora mismo no puedo consultar el sistema de citas. ¿Intentamos más tarde?")
-            return LLMRespuesta(texto="No pude procesar la cancelación. Verifica tu documento.")
+                return LLMRespuesta(
+                    texto="Ahora mismo no puedo consultar el sistema de citas. ¿Intentamos más tarde?"
+                )
+            return LLMRespuesta(
+                texto="No pude procesar la cancelación. Verifica tu documento."
+            )
 
         # ---- RESERVAR: completar datos ANTES de tocar las tools
         if last is None:
@@ -75,7 +93,9 @@ class MockLLM:
 
         if last.get("tool") == "listar_medicos":
             if not last.get("ok"):
-                return LLMRespuesta(texto="No puedo consultar la lista de médicos en este momento (agenda no disponible).")
+                return LLMRespuesta(
+                    texto="No puedo consultar la lista de médicos en este momento (agenda no disponible)."
+                )
             esp = self._especialidad(all_user)
             medico = next((m for m in last["result"] if m["especialidad"] == esp), None)
             if not medico:
@@ -85,20 +105,33 @@ class MockLLM:
             m_fecha = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", all_user)
             fecha = m_fecha.group(1) if m_fecha else CONFIG.FIXED_TODAY
             return LLMRespuesta(
-                tool_calls=[self._tc("ver_disponibilidad", {"medico_id": medico["id"], "fecha": fecha})]
+                tool_calls=[
+                    self._tc(
+                        "ver_disponibilidad",
+                        {"medico_id": medico["id"], "fecha": fecha},
+                    )
+                ]
             )
 
         if last.get("tool") == "ver_disponibilidad":
             if not last.get("ok"):
                 if last.get("code") == "AGENDA_NO_DISPONIBLE":
-                    return LLMRespuesta(texto="El sistema de agenda no responde en este momento. ¿Intentamos más tarde?")
-                return LLMRespuesta(texto="No pude consultar la disponibilidad. Verifica los datos.")
+                    return LLMRespuesta(
+                        texto="El sistema de agenda no responde en este momento. ¿Intentamos más tarde?"
+                    )
+                return LLMRespuesta(
+                    texto="No pude consultar la disponibilidad. Verifica los datos."
+                )
             slots = last["result"].get("franjas") or []
             hora = self._hora(all_user)
-            slot = next((s for s in slots if hora and s["inicio"].startswith(hora)), None)
+            slot = next(
+                (s for s in slots if hora and s["inicio"].startswith(hora)), None
+            )
             if not slot:
                 hay = ", ".join(s["inicio"] for s in slots[:5]) or "ninguna"
-                return LLMRespuesta(texto=f"Para esa fecha no hay franja a las {hora or 'esa hora'}. Franjas libres: {hay}...")
+                return LLMRespuesta(
+                    texto=f"Para esa fecha no hay franja a las {hora or 'esa hora'}. Franjas libres: {hay}..."
+                )
             nombre, doc = self._paciente(all_user)
             return LLMRespuesta(
                 tool_calls=[
@@ -121,12 +154,20 @@ class MockLLM:
                     texto=f"Listo, tu cita quedó {cita.get('estado')} para el {cita.get('fecha')} a las {cita.get('hora')}. Código de cita: {cita.get('id')}."
                 )
             if last.get("code") == "HORARIO_OCUPADO":
-                return LLMRespuesta(texto="Esa franja acaba de ocuparse. ¿Te reservo otra hora disponible?")
+                return LLMRespuesta(
+                    texto="Esa franja acaba de ocuparse. ¿Te reservo otra hora disponible?"
+                )
             if last.get("code") == "AGENDA_NO_DISPONIBLE":
-                return LLMRespuesta(texto="El sistema no está disponible ahora mismo. ¿Intentamos más tarde?")
-            return LLMRespuesta(texto=f"No pude reservar la cita ({last.get('code', 'VALIDACION')}). Verifica los datos.")
+                return LLMRespuesta(
+                    texto="El sistema no está disponible ahora mismo. ¿Intentamos más tarde?"
+                )
+            return LLMRespuesta(
+                texto=f"No pude reservar la cita ({last.get('code', 'VALIDACION')}). Verifica los datos."
+            )
 
-        return LLMRespuesta(texto="¿Puedo ayudarte con una cita: reservar, consultar o cancelar?")
+        return LLMRespuesta(
+            texto="¿Puedo ayudarte con una cita: reservar, consultar o cancelar?"
+        )
 
     # ---- helpers de datos
     def _si_faltan_datos(self, all_user: str) -> LLMRespuesta | None:
@@ -156,7 +197,11 @@ class MockLLM:
         return f"{h:02d}:{mn}"
 
     def _paciente(self, all_user: str) -> tuple[str, str]:
-        m = re.search(r"soy\s+([A-ZÁÉÍÓÚÑa-záéíóúñ ]+?)\s*,?\s*documento\s+(\d{8})", all_user, re.IGNORECASE)
+        m = re.search(
+            r"soy\s+([A-ZÁÉÍÓÚÑa-záéíóúñ ]+?)\s*,?\s*documento\s+(\d{8})",
+            all_user,
+            re.IGNORECASE,
+        )
         if m:
             return m.group(1).strip(), m.group(2)
         generic = re.search(r"\b(\d{8})\b", all_user)
@@ -166,7 +211,10 @@ class MockLLM:
         return {
             "id": f"call_{random.randint(1000, 9999)}",
             "type": "function",
-            "function": {"name": name, "arguments": json.dumps(args, ensure_ascii=False)},
+            "function": {
+                "name": name,
+                "arguments": json.dumps(args, ensure_ascii=False),
+            },
         }
 
 
@@ -175,12 +223,16 @@ class GroqLLM:
 
     def __init__(self):
         if not CONFIG.GROQ_API_KEY:
-            raise RuntimeError("GROQ_API_KEY no definida; usa MOCK_LLM=true o configura la key")
+            raise RuntimeError(
+                "GROQ_API_KEY no definida; usa MOCK_LLM=true o configura la key"
+            )
         from openai import OpenAI  # importación perezosa
 
         self._client = OpenAI(base_url=CONFIG.LLM_BASE_URL, api_key=CONFIG.GROQ_API_KEY)
 
-    def chat(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> LLMRespuesta:
+    def chat(
+        self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]
+    ) -> LLMRespuesta:
         resp = self._client.chat.completions.create(
             model=CONFIG.LLM_MODEL,
             messages=messages,
@@ -195,7 +247,10 @@ class GroqLLM:
                 {
                     "id": call.id,
                     "type": "function",
-                    "function": {"name": call.function.name, "arguments": call.function.arguments},
+                    "function": {
+                        "name": call.function.name,
+                        "arguments": call.function.arguments,
+                    },
                 }
             )
         return LLMRespuesta(texto=choice.message.content, tool_calls=tcs)
