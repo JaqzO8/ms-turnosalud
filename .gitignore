@@ -20,3 +20,5 @@ harness/logs/
 terraform.tfstate*
 *.tfvars
 .terraform/
+.ruff_cache/
+results.xml

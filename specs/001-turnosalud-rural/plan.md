@@ -12,7 +12,7 @@ La arquitectura, los contratos y el modelo de datos están definidos en las secc
 
 ## Decisiones que debe cerrar el equipo antes de implementar
 
-- Respuesta del replay idempotente: elegir 200 o 201 y fijarla en tests.
+- Replay idempotente: 200 con respuesta original; implementado y probado en el PR de citas.
 - Cómo refleja agenda las reservas de citas sin acceder a su base de datos; el contrato inicial no define esta sincronización.
 - Cómo descubre el harness los médicos si su registro solo permite las cuatro herramientas del plan.
 - Cómo identificar y confirmar la cita a cancelar cuando un documento tiene varias citas.
@@ -22,3 +22,13 @@ La arquitectura, los contratos y el modelo de datos están definidos en las secc
 ## Secuencia
 
 Revisar las especificaciones juntos; implementar servicios con fakes; integrar; implementar el harness y las evaluaciones; agregar CI de pruebas; preparar CD y evidencias de AWS.
+
+## Decisiones de citas y CI para revisión en este PR
+
+- Se agregan payload_hash y respuesta_original al modelo interno para replay estable aun después de cancelar; el listado refleja el estado actual.
+- Fecha pasada: anterior al día actual en America/Lima. Documento de ocho dígitos, UUID obligatorio y hora HH:MM. Listado requiere documento; size 1–100.
+- Agenda 400/404: 422 VALIDACION. Timeout/error/respuesta inválida: 503 sin reservar. Franja no disponible o índice ocupado: 409 HORARIO_OCUPADO.
+- Índice parcial y clave única protegen concurrencia; cancelación con actualización condicional atómica.
+- Inicialización de BD idempotente para SQLite/PostgreSQL; futuras evoluciones requieren migraciones. OpenAPI exportado y comprobado por CI.
+- Flujo solicitado: feat/* → develop → main. Deploy después de CI verde en main y configuración EC2 habilitada. Contrato propuesto para los entrypoints de agenda/harness en deploy/README.md.
+- Sincronización de disponibilidad, integración real y evaluaciones del agente siguen pendientes; los fakes no las sustituyen.
