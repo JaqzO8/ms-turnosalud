@@ -20,3 +20,10 @@ harness/logs/
 terraform.tfstate*
 *.tfvars
 .terraform/
+.ruff_cache/
+results.xml
+.coverage
+.coverage.*
+coverage.xml
+coverage.md
+htmlcov/

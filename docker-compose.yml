@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: turnosalud
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: citas_db
+    ports: ['127.0.0.1:5433:5432']
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/init-db.sql:/docker-entrypoint-initdb.d/01-agenda.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U turnosalud -d citas_db']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [turno-salud-net]
+  ms-citas:
+    build: ./ms-citas
+    environment:
+      DATABASE_URL: postgresql+psycopg://turnosalud:${POSTGRES_PASSWORD}@db:5432/citas_db
+      AGENDA_URL: ${AGENDA_URL:-http://ms-agenda:3001}
+    ports: ['127.0.0.1:3002:3002']
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [turno-salud-net]
+volumes:
+  postgres-data:
+networks:
+  turno-salud-net:
+    name: turno-salud-net

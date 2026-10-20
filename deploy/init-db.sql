@@ -1,0 +1,1 @@
+CREATE DATABASE agenda_db;

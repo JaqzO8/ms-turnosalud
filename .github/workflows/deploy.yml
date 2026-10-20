@@ -1,0 +1,47 @@
+name: Deploy EC2
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: production-ec2
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      vars.EC2_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Deploy tested commit
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?Missing SSH_HOST}" "${SSH_USER:?Missing SSH_USER}"
+          : "${SSH_KEY:?Missing SSH_KEY}" "${SSH_KNOWN_HOSTS:?Missing SSH_KNOWN_HOSTS}"
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$SSH_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]]
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]]
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/deploy_key' EXIT
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" "bash -s -- $DEPLOY_SHA" < deploy/deploy.sh
+          echo "Deployed commit: $DEPLOY_SHA" >> "$GITHUB_STEP_SUMMARY"
