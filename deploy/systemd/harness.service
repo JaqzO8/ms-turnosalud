@@ -1,0 +1,18 @@
+[Unit]
+Description=Turno Salud Harness
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=turnosalud
+Group=turnosalud
+WorkingDirectory=/opt/turno-salud/current/harness
+EnvironmentFile=/etc/turno-salud/harness.env
+ExecStart=/opt/turno-salud/current/harness/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 3003
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
