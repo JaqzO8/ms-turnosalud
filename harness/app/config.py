@@ -9,7 +9,7 @@ load_dotenv()
 class Config:
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
-    LLM_MODEL: str = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
+    LLM_MODEL: str = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
     MOCK_LLM: bool = os.getenv("MOCK_LLM", "true").lower() == "true"
 
     MS_AGENDA_URL: str = os.getenv("MS_AGENDA_URL", "http://localhost:3001")
