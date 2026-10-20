@@ -159,9 +159,9 @@ puede invocar la tool dos veces — la idempotencia lo absorbe). Demostrarlo en 
   Plan B offline: `MOCK_LLM=true` (respuestas programadas, la demo no muere).
 - **Componentes mínimos del harness** (definición formal para el docente):
   1. *Registro de tools* generado de los contratos §4 (JSON Schema por tool:
-     `ver_disponibilidad`, `reservar_cita`, `cancelar_cita`, `listar_citas`)
+     `listar_medicos`, `ver_disponibilidad`, `reservar_cita`, `cancelar_cita`, `listar_citas`)
   2. *Loop del agente*: interpretar → llamar tool(s) → observar resultado → responder
-  3. *Guardrails*: solo esas 4 tools, timeouts HTTP, máx. 5 llamadas por conversación
+  3. *Guardrails*: solo esas 5 tools, timeouts HTTP, máx. 5 llamadas por conversación
   4. *Observabilidad*: transcript de cada conversación (mensajes + tools + ms) en `harness/logs/`
   5. *Eval suite* E-01..E-05:
      - E-01 "quiero cita con pediatría el jueves a las 8" → reserva CONFIRMADA
