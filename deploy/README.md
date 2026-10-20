@@ -6,11 +6,11 @@
 
 CI ejecuta citas en SQLite/PostgreSQL, lint, OpenAPI y build Docker. Prueba agenda/harness cuando se incorporan. En PR hacia main y push a main exige todos los componentes de release. Los workflows se activan al incorporarse en cada rama.
 
-Configurar reglas de ramas en GitHub para exigir PR, revisión y checks `citas-sqlite`, `citas-postgres`, `integration-readiness` y `container`. Los workflows no impiden por sí solos pushes directos o merges con checks fallidos.
+El check `quality-gate` exige cobertura >= 80%, pruebas, lint, formato, contrato y build aprobados. Los reportes están en Actions. Cuando el plan de GitHub lo permita, configurar protección de main/develop para exigir PR, revisión y quality-gate. La API devolvió 403 para la protección de este repositorio privado; los workflows no impiden por sí solos pushes directos o merges manuales con checks fallidos. Ver [política de calidad](../docs/calidad.md).
 
 ## Contrato de integración propuesto para Sebitas
 
-- Agenda: Node 22, package-lock.json, scripts test (acepta --run) y build, salida dist/server.js; /health en 3001; scripts/migrate.sh idempotente que consume sus variables de entorno.
+- Agenda: Node 22, package-lock.json, scripts test (Vitest con coverage), lint, format:check y build, salida dist/server.js; /health en 3001; scripts/migrate.sh idempotente que consume sus variables de entorno. Cobertura sobre src/ >= 80% para líneas, funciones, ramas y sentencias.
 - Harness: Python 3.13, requirements.lock con pytest y uvicorn, app.main:app, tests/ y /health en 3003; evaluaciones con MOCK_LLM=true.
 - Revisar estos entrypoints en el PR antes de integrar. Las unidades systemd de esos módulos son plantillas pendientes de validar.
 

@@ -37,6 +37,7 @@ jobs:
           cache-dependency-path: ms-citas/requirements.lock
       - run: pip install -r requirements.lock
       - run: ruff check app tests
+      - run: ruff format --check app tests
       - name: Check exported OpenAPI
         run: python -c "import json; from pathlib import Path; from app.main import create_app; assert json.loads(Path('openapi.json').read_text()) == create_app().openapi()"
       - name: Tests SQLite
@@ -47,11 +48,24 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql+psycopg://test:test@localhost:5432/citas_test
         run: pytest -q --junitxml=results.xml
+      - name: Coverage summary (minimum 80%)
+        if: always()
+        run: |
+          echo '## Citas: coverage gate >= 80%, lint and format required' >> "$GITHUB_STEP_SUMMARY"
+          if [ -f coverage.md ]; then
+            cat coverage.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Coverage unavailable: review failed steps. This is not a passing result.' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: tests-citas-${{ matrix.database }}
-          path: ms-citas/results.xml
+          path: |
+            ms-citas/results.xml
+            ms-citas/coverage.xml
+            ms-citas/coverage.md
+            ms-citas/htmlcov/
   integration-readiness:
     runs-on: ubuntu-latest
     steps:
@@ -71,7 +85,9 @@ jobs:
           if [ -f ms-agenda/package.json ]; then
             cd ms-agenda
             npm ci
-            npm test -- --run
+            npm run lint
+            npm run format:check
+            npm test -- --run --coverage --coverage.include='src/**' --coverage.thresholds.lines=80 --coverage.thresholds.functions=80 --coverage.thresholds.branches=80 --coverage.thresholds.statements=80
             npm run build
             test -f dist/server.js
           else
@@ -83,10 +99,27 @@ jobs:
           if [ -f harness/requirements.lock ]; then
             cd harness
             pip install -r requirements.lock
-            MOCK_LLM=true python -m pytest -q
+            pip install pytest-cov==7.1.0 coverage==7.16.2 ruff==0.17.1
+            ruff check app tests --select E4,E7,E9,F,I,B,UP
+            ruff format --check app tests
+            MOCK_LLM=true python -m pytest -q --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=80
           else
             echo 'Harness pendiente de integración; release a main bloqueado por check-release.' >> "$GITHUB_STEP_SUMMARY"
           fi
+  quality-gate:
+    name: quality-gate
+    if: always()
+    needs: [citas, integration-readiness, container]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every quality check to pass
+        env:
+          CITAS: ${{ needs.citas.result }}
+          INTEGRATION: ${{ needs.integration-readiness.result }}
+          CONTAINER: ${{ needs.container.result }}
+        run: |
+          echo '## Acceptance: coverage >= 80% + passing tests, lint, format, contract and build' >> "$GITHUB_STEP_SUMMARY"
+          [[ "$CITAS" == success && "$INTEGRATION" == success && "$CONTAINER" == success ]]
   container:
     runs-on: ubuntu-latest
     steps:

@@ -32,3 +32,4 @@ Revisar las especificaciones juntos; implementar servicios con fakes; integrar; 
 - Inicialización de BD idempotente para SQLite/PostgreSQL; futuras evoluciones requieren migraciones. OpenAPI exportado y comprobado por CI.
 - Flujo solicitado: feat/* → develop → main. Deploy después de CI verde en main y configuración EC2 habilitada. Contrato propuesto para los entrypoints de agenda/harness en deploy/README.md.
 - Sincronización de disponibilidad, integración real y evaluaciones del agente siguen pendientes; los fakes no las sustituyen.
+- Criterio solicitado de aceptación: cobertura mínima del 80% del código de aplicación, con tests, lint y formato obligatorios. quality-gate concentra el resultado; política, reportes y limitación del plan GitHub en docs/calidad.md.

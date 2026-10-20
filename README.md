@@ -31,4 +31,6 @@ No subir credenciales ni datos reales de pacientes. Cada servicio debe documenta
 
 ## AWS
 
+Los cambios deben cumplir [la política de calidad](docs/calidad.md): cobertura mínima del 80%, tests, lint y formato correctos. Actions publica los reportes y el resultado de `quality-gate`.
+
 Ver [ejecución de citas](ms-citas/README.md) y [preparación de EC2 y flujo de despliegue](deploy/README.md). AWS aún no está configurado ni desplegado.
