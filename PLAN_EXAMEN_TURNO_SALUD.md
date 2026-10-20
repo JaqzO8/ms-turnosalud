@@ -163,12 +163,14 @@ puede invocar la tool dos veces — la idempotencia lo absorbe). Demostrarlo en 
   2. *Loop del agente*: interpretar → llamar tool(s) → observar resultado → responder
   3. *Guardrails*: solo esas 5 tools, timeouts HTTP, máx. 5 llamadas por conversación
   4. *Observabilidad*: transcript de cada conversación (mensajes + tools + ms) en `harness/logs/`
-  5. *Eval suite* E-01..E-05:
-     - E-01 "quiero cita con pediatría el jueves a las 8" → reserva CONFIRMADA
-     - E-02 franja ya ocupada → no reserva y comunica alternativas
-     - E-03 médico inexistente → no llama a la tool de reserva, respuesta honesta
+  5. *Eval suite* (tests E2E del agente, contraste contra el sistema real):
+     - E-01 "quiero cita con pediatría el jueves a las 10" → reserva CONFIRMADA
+     - E-02 doble reserva de la misma franja → 409, el agente rehusa y ofrece alternativas
+     - E-03 especialidad sin médico registrado → respuesta honesta, sin reservar
      - E-04 cancela por documento → estado CANCELADA
      - E-05 pregunta fuera de dominio (ej. "¿clima?") → no llama a ninguna tool
+     - E-06 datos incompletos → el agente PREGUNTA por el dato faltante (sin tools)
+     - E-07 reserva multi-turno con memoria de sesión (4 rondas → CONFIRMADA)
   (La eval suite = tests E2E del agente; corre sin red si `MOCK_LLM=true`.)
 - **Persona del agente**: "recepcionista del centro de salud rural", español, sin
   prometer datos clínicos que no existen en el sistema.
