@@ -47,7 +47,9 @@ def _fake_openai(monkeypatch, message):
 
     def build(**kw):
         holder.update(kw)
-        return types.SimpleNamespace(chat=types.SimpleNamespace(completions=comp), base_url=kw.get("base_url"))
+        return types.SimpleNamespace(
+            chat=types.SimpleNamespace(completions=comp), base_url=kw.get("base_url")
+        )
 
     monkeypatch.setattr("openai.OpenAI", build)
     return holder, comp

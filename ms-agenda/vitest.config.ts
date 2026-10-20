@@ -5,9 +5,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       include: ["src/**"],
-      // Infra de arranque/BD: validada en integración (T-06) y por el job de
-      // PostgreSQL del CI de citas; la cobertura aquí mide la lógica de contratos.
-      exclude: ["src/server.ts", "src/migrate.ts", "src/repo/pg.ts"],
+      // Entrypoints exercised by deployment smoke; repository logic included.
+      exclude: ["src/server.ts", "src/migrate.ts"],
     },
   },
 });

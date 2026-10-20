@@ -2,18 +2,12 @@
 set -euo pipefail
 sha="${1:?Expected tested commit SHA}"
 [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
-cd /opt/turno-salud/repo
+cd /opt/turno-salud
 exec 9>/opt/turno-salud/deploy.lock
 flock -n 9
-git fetch origin main
-# An older queued run must never overwrite a newer main deployment.
-if [[ "$(git rev-parse origin/main)" != "$sha" ]]; then
-  echo "Superseded commit; skipping $sha"
-  exit 0
-fi
 release="/opt/turno-salud/releases/$sha"
 mkdir -p "$release"
-git archive "$sha" | tar -x -C "$release"
+tar -xzf "/opt/turno-salud/incoming/$sha.tar.gz" -C "$release"
 cd "$release"
 bash deploy/check-release.sh
 python3.13 -m venv ms-citas/.venv

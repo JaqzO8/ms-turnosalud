@@ -2,6 +2,7 @@
 # Guardarraíles: máx. MAX_TOOL_CALLS llamadas, transcript JSONL por sesión.
 import json
 import os
+import re
 import time
 import uuid
 from typing import Any
@@ -18,6 +19,8 @@ class Agente:
         self._sesiones: dict[str, list[dict[str, Any]]] = {}
 
     def responder(self, mensaje: str, sesion_id: str | None = None) -> dict[str, Any]:
+        if sesion_id and not re.fullmatch(r"[A-Za-z0-9_-]{1,100}", sesion_id):
+            sesion_id = None
         nuevos = sesion_id is None or sesion_id not in self._sesiones
         sesion_id = sesion_id or str(uuid.uuid4())
         if nuevos:

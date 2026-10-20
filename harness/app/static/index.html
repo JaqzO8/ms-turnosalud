@@ -48,11 +48,11 @@ const chat = document.getElementById("chat");
 const inp = document.getElementById("mensaje");
 const btn = document.getElementById("enviar");
 const btnEvals = document.getElementById("evals");
-const sesion = localStorage.getItem("sesion") || crypto.randomUUID();
+const sesion = localStorage.getItem("sesion") || (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''));
 localStorage.setItem("sesion", sesion);
 
 fetch("/health").then(r => r.json()).then(h => {
-  document.getElementById("modo").textContent = h.mock_llm ? "MOCK_LLM (sin red)" : "LLM Groq activo";
+  document.getElementById("modo").textContent = h.mock_llm ? "Demo · solo datos ficticios" : "LLM Groq activo";
 });
 
 function add(el) { chat.appendChild(el); chat.scrollTop = chat.scrollHeight; }

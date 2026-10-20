@@ -20,7 +20,7 @@ const PORT = Number(process.env.PORT ?? 3001);
 async function main() {
   const repo = await elegirRepo();
   const app = crearApp(repo);
-  const server = app.listen(PORT, () => {
+  const server = app.listen(PORT, process.env.HOST ?? "127.0.0.1", () => {
     console.log(`[ms-agenda] escuchando en :${PORT}`);
   });
   // apagado limpio
