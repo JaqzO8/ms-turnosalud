@@ -2,7 +2,7 @@ import os
 from datetime import UTC, date, datetime, time
 from uuid import uuid4
 
-from sqlalchemy import JSON, CheckConstraint, Date, DateTime, Index, String, Time, create_engine, text
+from sqlalchemy import JSON, CheckConstraint, Date, DateTime, Index, Integer, String, Time, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -35,6 +35,20 @@ class Cita(Base):
             postgresql_where=text("estado = 'CONFIRMADA'"),
         ),
     )
+
+
+class Usuario(Base):
+    __tablename__ = "usuarios"
+    documento: Mapped[str] = mapped_column(String(8), primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(200))
+    password_hash: Mapped[str] = mapped_column(String(200))
+
+
+class LoginSession(Base):
+    __tablename__ = "login_sessions"
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    documento: Mapped[str] = mapped_column(String(8), index=True)
+    expires: Mapped[int] = mapped_column(Integer)
 
 
 def make_engine(url=None):

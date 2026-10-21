@@ -41,6 +41,18 @@ location / {
     client_max_body_size 16k;
 }
 NGINX
+cat > /etc/nginx/conf.d/turnosalud-rate.conf <<'RATE'
+limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=5r/m;
+RATE
+cat >> /etc/nginx/default.d/turnosalud.conf <<'AUTH'
+location ~ ^/portal/(login|register)$ {
+    limit_req zone=auth_limit burst=5 nodelay;
+    limit_req_status 429;
+    proxy_pass http://127.0.0.1:3003;
+    proxy_set_header Host $host;
+    client_max_body_size 16k;
+}
+AUTH
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx

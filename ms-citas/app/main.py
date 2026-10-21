@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 from starlette.exceptions import HTTPException
 
 from .agenda import AgendaClient, BusinessError
+from .auth import install_auth, user_for
 from .db import Cita, make_engine
 from .schemas import CitaResponse, Documento, ErrorResponse, Pagina, Reserva
 
@@ -42,7 +43,7 @@ def replay(cita, digest):
     return JSONResponse(cita.respuesta_original, status_code=200)
 
 
-def create_app(engine=None, agenda=None, clock=None):
+def create_app(engine=None, agenda=None, clock=None, require_auth=True):
     owns_engine = engine is None
     engine = engine if engine is not None else make_engine()
     clock = clock or (lambda: datetime.now(ZoneInfo("America/Lima")))
@@ -64,6 +65,7 @@ def create_app(engine=None, agenda=None, clock=None):
 
     errors = {s: {"model": ErrorResponse} for s in (404, 409, 422, 503)}
     app = FastAPI(title="Turno-Salud: ms-citas", version="0.1.0", lifespan=lifespan, responses=errors)
+    install_auth(app, engine)
 
     @app.middleware("http")
     async def correlation(request, call_next):
@@ -72,6 +74,12 @@ def create_app(engine=None, agenda=None, clock=None):
             request.state.correlation_id = str(UUID(supplied))
         except ValueError:
             request.state.correlation_id = str(uuid4())
+        request.state.user = None
+        if require_auth and request.url.path.startswith("/api/v1/citas"):
+            try:
+                request.state.user = user_for(request, engine)
+            except BusinessError as exc:
+                return error(request, exc.status, exc.code, exc.message)
         response = await call_next(request)
         response.headers["X-Correlation-ID"] = request.state.correlation_id
         return response
@@ -124,6 +132,8 @@ def create_app(engine=None, agenda=None, clock=None):
         responses={200: {"model": CitaResponse, "description": "Replay idempotente"}},
     )
     def reservar(body: Reserva, request: Request, idempotency_key: Annotated[UUID, Header()]):
+        if request.state.user and body.paciente.documento != request.state.user["documento"]:
+            raise BusinessError(403, "ACCESO_DENEGADO", "Solo puedes reservar tus propias citas.")
         digest = hashlib.sha256(
             json.dumps(body.model_dump(mode="json"), sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()
@@ -173,8 +183,11 @@ def create_app(engine=None, agenda=None, clock=None):
             return cita.respuesta_original
 
     @app.post("/api/v1/citas/{cita_id}/cancelar", response_model=CitaResponse)
-    def cancelar(cita_id: UUID):
+    def cancelar(cita_id: UUID, request: Request):
         with Session(engine) as session:
+            owned = session.get(Cita, str(cita_id))
+            if request.state.user and (not owned or owned.documento != request.state.user["documento"]):
+                raise BusinessError(404, "CITA_NO_ENCONTRADA", "La cita no existe.")
             result = session.execute(
                 update(Cita).where(Cita.id == str(cita_id), Cita.estado == "CONFIRMADA").values(estado="CANCELADA")
             )
@@ -188,8 +201,13 @@ def create_app(engine=None, agenda=None, clock=None):
 
     @app.get("/api/v1/citas", response_model=Pagina)
     def listar(
-        documento: Documento, page: Annotated[int, Query(ge=1)] = 1, size: Annotated[int, Query(ge=1, le=100)] = 10
+        request: Request,
+        documento: Documento,
+        page: Annotated[int, Query(ge=1)] = 1,
+        size: Annotated[int, Query(ge=1, le=100)] = 10,
     ):
+        if request.state.user and documento != request.state.user["documento"]:
+            raise BusinessError(403, "ACCESO_DENEGADO", "Solo puedes consultar tus propias citas.")
         with Session(engine) as session:
             total = session.scalar(select(func.count()).select_from(Cita).where(Cita.documento == documento))
             citas = session.scalars(
