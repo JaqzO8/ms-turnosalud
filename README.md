@@ -15,7 +15,7 @@ El [plan maestro](PLAN_EXAMEN_TURNO_SALUD.md) contiene el alcance, los contratos
 | `specs/` | Especificaciones y decisiones compartidas |
 | `ms-citas/` | José: FastAPI, reservas, cancelaciones e idempotencia |
 | `ms-agenda/` | Josué: Express + TypeScript, médicos y franjas |
-| `harness/` | Josué: agente, herramientas y evaluaciones |
+| `harness/` | Trabajo conjunto: agente, herramientas y evaluaciones |
 | `deploy/` | José: futura infraestructura y despliegue EC2 |
 | `docs/` | Evidencias y guion de demostración |
 
