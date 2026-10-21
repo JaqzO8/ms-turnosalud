@@ -11,6 +11,11 @@ from app.config import CONFIG
 logger = logging.getLogger("turnosalud.portal")
 
 
+def auth_headers(token: str) -> dict[str, str]:
+    # h11 rechaza "Bearer " (espacio final): omitir header si no hay token
+    return {"Authorization": "Bearer " + token} if token else {}
+
+
 def remote(request, method, path, body=None, params=None):
     token = request.cookies.get("turnosalud_session", "")
     try:
@@ -22,7 +27,7 @@ def remote(request, method, path, body=None, params=None):
                 CONFIG.MS_CITAS_URL + path,
                 json=body,
                 params=params,
-                headers={"Authorization": "Bearer " + token},
+                headers=auth_headers(token),
             )
     except httpx.HTTPError as exc:
         logger.warning("citas inalcanzable: %r url=%s", exc, CONFIG.MS_CITAS_URL + path)

@@ -23,10 +23,13 @@ class ToolError(Exception):
 
 
 def _client() -> httpx.Client:
+    # h11 rechaza "Bearer " (espacio final): omitir header si no hay token
+    token = AUTH_TOKEN.get()
+    headers = {"Authorization": "Bearer " + token} if token else {}
     return httpx.Client(
         timeout=CONFIG.HTTP_TIMEOUT_MS / 1000,
         transport=_TRANSPORT,
-        headers={"Authorization": "Bearer " + AUTH_TOKEN.get()},
+        headers=headers,
     )
 
 

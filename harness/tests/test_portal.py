@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 
 import app.tools as tools
 from app.main import app
+from app.portal import auth_headers
 
 
 @pytest.fixture
@@ -21,7 +22,7 @@ def portal(monkeypatch):
                 not request.headers.get("Authorization", "").endswith("test-token")
                 or not state["valid"]
             ):
-                return httpx.Response(401, json={"message": "Inicia sesión"})
+                return httpx.Response(401, json={"message": "Inicia sesiÃ³n"})
             return httpx.Response(200, json={"nombre": "Demo", "documento": "12345678"})
         if path == "/auth/login":
             return httpx.Response(
@@ -55,6 +56,26 @@ def test_portal_cookie_and_scope(portal):
     assert client.get("/evals").status_code == 403
     assert client.post("/portal/logout").status_code == 200
     assert "turnosalud_session" not in client.cookies
+
+
+def test_sin_token_no_se_envia_bearer_vacio(portal):
+    # h11 rechaza el header "Bearer " (regresion: 503 en EC2 con trafico real)
+    client, calls, _ = portal
+    client.get("/portal/me")
+    assert "authorization" not in calls[0].headers
+    with tools._client() as c:
+        assert "authorization" not in c.headers
+
+
+def test_con_token_se_envia_bearer(portal):
+    token = tools.AUTH_TOKEN.set("abc")
+    try:
+        with tools._client() as c:
+            assert c.headers["authorization"] == "Bearer abc"
+        assert auth_headers("abc") == {"Authorization": "Bearer abc"}
+        assert auth_headers("") == {}
+    finally:
+        tools.AUTH_TOKEN.reset(token)
 
 
 def test_authenticated_chat_context(portal, monkeypatch):
