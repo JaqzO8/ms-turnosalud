@@ -1,5 +1,9 @@
 # Plan técnico inicial
 
+## Ampliación solicitada: login y Mis citas
+
+Se incorpora autenticación básica conjunta entre ms-citas y harness, fuera del alcance inicial. Contrato /auth/register, /auth/login, /auth/me, /auth/logout en citas; portal web /portal/* con cookie HttpOnly. Los endpoints de citas ahora requieren bearer y autorización por documento. Véase docs/login.md. No hay acceso anónimo a chat/citas ni apropiación pública de reservas legadas.
+
 La arquitectura, los contratos y el modelo de datos están definidos en las secciones 2, 4 y 5 del [plan maestro](../../PLAN_EXAMEN_TURNO_SALUD.md). Esta referencia evita duplicar contratos durante la preparación inicial.
 
 ## Componentes previstos

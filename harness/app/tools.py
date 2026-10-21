@@ -2,6 +2,7 @@
 # Los URI (endpoints) nacen del contrato §4: mismo contrato que tests y ms-citas.
 import time
 import uuid
+from contextvars import ContextVar
 from typing import Any
 
 import httpx
@@ -10,6 +11,7 @@ from app.config import CONFIG
 
 # Hook para tests: inyectar httpx.MockTransport sin red (None = HTTP real)
 _TRANSPORT: httpx.BaseTransport | None = None
+AUTH_TOKEN: ContextVar[str] = ContextVar("auth_token", default="")
 
 
 class ToolError(Exception):
@@ -21,7 +23,11 @@ class ToolError(Exception):
 
 
 def _client() -> httpx.Client:
-    return httpx.Client(timeout=CONFIG.HTTP_TIMEOUT_MS / 1000, transport=_TRANSPORT)
+    return httpx.Client(
+        timeout=CONFIG.HTTP_TIMEOUT_MS / 1000,
+        transport=_TRANSPORT,
+        headers={"Authorization": "Bearer " + AUTH_TOKEN.get()},
+    )
 
 
 def listar_medicos() -> list[dict[str, Any]]:

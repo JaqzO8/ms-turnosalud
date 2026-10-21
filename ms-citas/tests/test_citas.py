@@ -45,7 +45,10 @@ def env(tmp_path):
 
     with httpx.Client(base_url="http://agenda", transport=httpx.MockTransport(respond)) as remote:
         app = create_app(
-            engine, AgendaClient(remote), clock=lambda: datetime(2030, 1, 1, tzinfo=ZoneInfo("America/Lima"))
+            engine,
+            AgendaClient(remote),
+            clock=lambda: datetime(2030, 1, 1, tzinfo=ZoneInfo("America/Lima")),
+            require_auth=False,
         )
         with TestClient(app, raise_server_exceptions=False) as client:
             yield client, state, engine

@@ -1,98 +1,21 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TURNO-SALUD · Recepcionista IA</title>
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TURNO-SALUD · Mis citas</title>
 <style>
-  :root { --bg:#0b1220; --panel:#111a2b; --line:#223047; --txt:#e7eefc; --mut:#93a4c3; --acc:#38bdf8; --ok:#34d399; --err:#f87171; }
-  * { box-sizing:border-box; margin:0; }
-  body { background:var(--bg); color:var(--txt); font:16px/1.5 "Segoe UI",system-ui,sans-serif; display:flex; flex-direction:column; height:100vh; }
-  header { padding:14px 22px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
-  header h1 { font-size:18px; font-weight:600; }
-  header .tag { margin-left:auto; font-size:12px; color:var(--mut); border:1px solid var(--line); padding:4px 10px; border-radius:999px; }
-  main { flex:1; overflow-y:auto; padding:22px; display:flex; flex-direction:column; gap:12px; }
-  .msg { max-width:70%; padding:10px 14px; border-radius:12px; white-space:pre-wrap; }
-  .usuario { align-self:flex-end; background:#1d4ed8; border-radius:12px 12px 2px 12px; }
-  .agentes { align-self:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:12px 12px 12px 2px; }
-  .tools { align-self:flex-start; font-size:12px; color:var(--mut); }
-  .tools b { color:var(--acc); font-weight:600; }
-  footer { border-top:1px solid var(--line); padding:12px 22px; display:flex; gap:10px; }
-  input { flex:1; background:var(--panel); border:1px solid var(--line); color:var(--txt); border-radius:10px; padding:12px 14px; font-size:15px; outline:none; }
-  input:focus { border-color:var(--acc); }
-  button { background:var(--acc); border:none; color:#04121f; font-weight:700; border-radius:10px; padding:12px 20px; cursor:pointer; }
-  button.sec { background:transparent; color:var(--mut); border:1px solid var(--line); font-weight:500; }
-  button:disabled { opacity:.5; cursor:wait; }
-  .inicio { color:var(--mut); text-align:center; margin:auto; }
-  .inicio small { display:block; margin-top:8px; }
-  .banner { align-self:flex-start; font-size:12px; padding:6px 12px; border-radius:999px; border:1px solid var(--line); color:var(--mut); }
-  .banner.ok { color:#0b2f21; background:var(--ok); border-color:var(--ok); font-weight:600; }
-  .banner.err { color:#3b0606; background:var(--err); border-color:var(--err); font-weight:600; }
-</style>
-</head>
-<body>
-<header>
-  <h1>🏥 TURNO-SALUD · Recepcionista IA</h1>
-  <span class="tag" id="modo">cargando…</span>
-</header>
-<main id="chat">
-  <div class="inicio">Escribe aquí en lenguaje natural.<small>«quiero una cita» · «¿qué médicos hay?» · «quiero cancelar mi cita, documento 12345678»</small></div>
-</main>
-<footer>
-  <input id="mensaje" placeholder="Soy María, documento 12345678. Quiero cita con pediatría…" autofocus />
-  <button id="enviar">Enviar</button>
-  <button class="sec" id="evals" title="Corre los evals E-01..E-07">Evals</button>
-</footer>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#183047;font:16px system-ui}header{background:#102d42;color:white;padding:20px 6%;display:flex;justify-content:space-between;align-items:center}h1{margin:0;font-size:23px}small{color:#b8d2df}main{max-width:1100px;margin:28px auto;padding:0 18px}.card{background:white;padding:24px;border-radius:14px;box-shadow:0 3px 16px #16304412;margin-bottom:20px}.login{max-width:440px;margin:50px auto}label{display:block;margin-top:14px}input{width:100%;padding:12px;margin-top:6px;border:1px solid #b8c9d3;border-radius:7px;font:inherit}button{padding:11px 16px;border:0;border-radius:7px;background:#007d85;color:white;cursor:pointer;font:inherit}button:disabled{opacity:.5;cursor:wait}.secondary{background:#e5eff3;color:#183047}form button{margin-top:18px}.error{color:#b42318;min-height:24px}.grid{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}.appointment{border:1px solid #dce7ec;border-radius:9px;padding:14px;margin-top:12px}.pill{font-size:12px;background:#d8f1e9;color:#175b44;padding:4px 8px;border-radius:12px}.cancelled{background:#eee;color:#666}#messages{height:300px;overflow:auto;border-bottom:1px solid #dce7ec;margin-bottom:12px}.msg{padding:12px;border-radius:8px;background:#eef5f7;margin-bottom:10px;white-space:pre-wrap}.user{background:#dbeafe}#sendform{display:flex;gap:8px}#sendform button{margin:6px 0 0}#sendform input{min-width:0}nav{display:flex;gap:10px;align-items:center}.notice{font-size:13px;color:#526b7b}[hidden]{display:none!important}@media(max-width:750px){.grid{grid-template-columns:1fr}header{padding:16px;gap:10px}h1{font-size:18px}nav{font-size:13px}}
+</style></head><body><header><div><h1>🏥 TURNO-SALUD</h1><small>Portal del paciente</small></div><nav id="nav" hidden><span id="welcome"></span><button id="logout" class="secondary">Salir</button></nav></header>
+<main><section id="auth" class="card login"><h2 id="title">Iniciar sesión</h2><p>Consulta tus citas y conversa con el recepcionista.</p><form id="authform"><label id="nameLabel" hidden>Nombre completo<input id="name" maxlength="200" autocomplete="name"></label><label>Documento (8 dígitos)<input id="document" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" required autocomplete="username"></label><label>Contraseña<input id="password" type="password" minlength="8" maxlength="128" required autocomplete="current-password"></label><button id="submit">Entrar</button><button type="button" id="toggle" class="secondary">Crear cuenta</button></form><p id="autherror" class="error" role="alert"></p><p class="notice">Demo HTTP: usa solo datos ficticios y una contraseña que no utilices en otros sitios. Las citas previas al registro requieren vinculación del administrador.</p></section>
+<section id="portal" hidden><div class="grid"><section class="card"><h2>Mis citas</h2><p>Reservas confirmadas y canceladas de tu cuenta.</p><button id="refresh" class="secondary">Actualizar</button><p id="listError" class="error" role="alert"></p><div id="appointments"></div><nav style="margin-top:16px"><button id="prev" class="secondary">Anterior</button><span id="paging"></span><button id="next" class="secondary">Siguiente</button></nav></section><section class="card"><h2>Recepcionista virtual</h2><p class="notice">Pide una cita indicando especialidad, fecha y hora. Tu identidad se obtiene de la sesión.</p><div id="messages" aria-live="polite"></div><form id="sendform"><input id="message" placeholder="Quiero una cita de pediatría…" required maxlength="2000"><button id="send">Enviar</button></form></section></div></section></main>
 <script>
-const chat = document.getElementById("chat");
-const inp = document.getElementById("mensaje");
-const btn = document.getElementById("enviar");
-const btnEvals = document.getElementById("evals");
-const sesion = localStorage.getItem("sesion") || (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join(''));
-localStorage.setItem("sesion", sesion);
-
-fetch("/health").then(r => r.json()).then(h => {
-  document.getElementById("modo").textContent = h.mock_llm ? "Demo · solo datos ficticios" : "LLM Groq activo";
-});
-
-function add(el) { chat.appendChild(el); chat.scrollTop = chat.scrollHeight; }
-function burbuja(clase, texto) { const d = document.createElement("div"); d.className = "msg " + clase; d.textContent = texto; add(d); }
-function lineaTools(tools) {
-  if (!tools || !tools.length) return;
-  const d = document.createElement("div"); d.className = "tools";
-  d.innerHTML = "🔧 " + tools.map(t => `<b>${t.name}</b>${t.ok === false ? " ✗" : ""}`).join(" → ");
-  add(d);
-}
-
-async function send() {
-  const texto = inp.value.trim();
-  if (!texto) return;
-  burbuja("usuario", texto); inp.value = ""; inp.focus();
-  btn.disabled = true;
-  try {
-    const r = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mensaje: texto, sesion_id: sesion }) });
-    const t = await r.json();
-    lineaTools(t.tools_usadas);
-    burbuja("agentes", t.respuesta || "(sin respuesta)");
-  } catch (e) {
-    burbuja("agentes", "⚠ No pude contactar al harness: " + e);
-  } finally { btn.disabled = false; }
-}
-
-btn.onclick = send;
-inp.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
-
-btnEvals.onclick = async () => {
-  burbuja("usuario", "(corriendo eval suite…)");
-  try {
-    const r = await fetch("/evals"); const e = await r.json();
-    e.resultados.forEach(x => burbuja(x.ok ? "banner ok" : "banner err", `${x.id} ${x.ok ? "✓" : "✗"} — esperado: ${x.esperado}`));
-    burbuja("agentes", `Evals ${e.ok}/${e.total} verdes (provider ${e.provider}). Sesión reiniciada a limpio con herramientas reales.`);
-  } catch (err) {
-    burbuja("agentes", "⚠ Falló /evals: " + err);
-  }
-};
-</script>
-</body>
-</html>
+const $=id=>document.getElementById(id);let registering=false,page=1,user=null;const session=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+async function api(path,method='GET',data){const r=await fetch(path,{method,headers:{'Content-Type':'application/json','X-Requested-With':'TurnoSalud'},body:data?JSON.stringify(data):undefined});const body=await r.json();if(!r.ok){if(r.status===401 && user){user=null;showLogin();}throw Error(body.message||body.detail||'No se pudo completar la solicitud.');}return body;}
+function showLogin(){$('auth').hidden=false;$('portal').hidden=true;$('nav').hidden=true;$('password').value='';$('appointments').replaceChildren();$('messages').replaceChildren();}
+async function enter(){user=await api('/portal/me');$('auth').hidden=true;$('portal').hidden=false;$('nav').hidden=false;$('welcome').textContent=user.nombre;page=1;await load();}
+$('toggle').onclick=()=>{registering=!registering;$('nameLabel').hidden=!registering;$('name').required=registering;$('title').textContent=registering?'Crear cuenta':'Iniciar sesión';$('submit').textContent=registering?'Registrarme':'Entrar';$('toggle').textContent=registering?'Ya tengo cuenta':'Crear cuenta';$('password').autocomplete=registering?'new-password':'current-password';$('autherror').textContent='';};
+$('authform').onsubmit=async e=>{e.preventDefault();$('submit').disabled=true;$('autherror').textContent='';try{const data={documento:$('document').value,password:$('password').value};if(registering)await api('/portal/register','POST',{...data,nombre:$('name').value});await api('/portal/login','POST',data);$('password').value='';await enter();}catch(err){$('autherror').textContent=err.message;}finally{$('submit').disabled=false;}};
+$('logout').onclick=async()=>{try{await api('/portal/logout','POST');user=null;showLogin();}catch(err){$('listError').textContent=err.message;}};
+async function load(){$('listError').textContent='';try{const data=await api('/portal/citas?page='+page);$('appointments').replaceChildren();if(!data.items.length)$('appointments').textContent='No tienes citas registradas en esta página. Reserva una desde el chat.';for(const c of data.items){const box=document.createElement('article');box.className='appointment';const heading=document.createElement('strong');heading.textContent=c.fecha+' · '+c.hora;const badge=document.createElement('p');badge.className='pill'+(c.estado==='CANCELADA'?' cancelled':'');badge.textContent=c.estado;const desc=document.createElement('p');desc.textContent=c.paciente_nombre;box.append(heading,badge,desc);if(c.estado==='CONFIRMADA'){const btn=document.createElement('button');btn.className='secondary';btn.textContent='Cancelar cita';btn.onclick=async()=>{if(!confirm('¿Cancelar esta cita?'))return;btn.disabled=true;try{await api('/portal/citas/'+c.id+'/cancelar','POST');await load();}catch(err){$('listError').textContent=err.message;btn.disabled=false;}};box.append(btn);}$('appointments').append(box);}$('paging').textContent='Página '+page+' · '+data.total+' citas';$('prev').disabled=page===1;$('next').disabled=page*data.size>=data.total;}catch(err){$('listError').textContent=err.message;}}
+$('refresh').onclick=load;$('prev').onclick=()=>{page--;load();};$('next').onclick=()=>{page++;load();};
+function bubble(text,own=false){const d=document.createElement('div');d.className='msg'+(own?' user':'');d.textContent=text;$('messages').append(d);$('messages').scrollTop=$('messages').scrollHeight;}
+$('sendform').onsubmit=async e=>{e.preventDefault();if($('send').disabled)return;const text=$('message').value.trim();if(!text)return;bubble(text,true);$('message').value='';$('send').disabled=true;try{const result=await api('/chat','POST',{mensaje:text,sesion_id:session});bubble(result.respuesta);await load();}catch(err){bubble(err.message);}finally{$('send').disabled=false;}};
+enter().catch(()=>showLogin());
+</script></body></html>

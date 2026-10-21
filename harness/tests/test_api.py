@@ -11,6 +11,7 @@ from app.main import app
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     store = FakeCitaStore()
+    monkeypatch.setattr("app.main.REQUIRE_LOGIN", False)
     monkeypatch.setattr(tools, "EXECUTORS", crear_fakes(store))
     monkeypatch.setattr(CONFIG, "LOGS_DIR", str(tmp_path))
     return TestClient(app), store
