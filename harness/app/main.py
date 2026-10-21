@@ -1,12 +1,16 @@
 # API HTTP del harness (T-07). Servida con uvicorn app.main:app en :3003 y sirve la UI de chat.
 import hashlib
+import os
+import socket
 import threading
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from app import tools
 from app.agent import Agente
 from app.config import CONFIG
 from app.evals import correr_evals
@@ -79,6 +83,36 @@ def evals():
         "total": len(resultados),
         "ok": ok_count,
         "resultados": resultados,
+    }
+
+
+@app.get("/diag")
+def diag():
+    url = CONFIG.MS_CITAS_URL + "/health"
+    noenv = env = socket_ok = None
+    try:
+        with httpx.Client(timeout=5, trust_env=False) as client:
+            noenv = client.get(url).status_code
+    except Exception as exc:
+        noenv = repr(exc)
+    try:
+        with httpx.Client(timeout=5, trust_env=True) as client:
+            env = client.get(url).status_code
+    except Exception as exc:
+        env = repr(exc)
+    try:
+        conn = socket.create_connection(("127.0.0.1", 3002), 3)
+        conn.close()
+        socket_ok = "ok"
+    except Exception as exc:
+        socket_ok = repr(exc)
+    return {
+        "url": url,
+        "httpx_noenv": noenv,
+        "httpx_env": env,
+        "socket": socket_ok,
+        "transport": repr(tools._TRANSPORT),
+        "env_proxy": {k: v for k, v in os.environ.items() if "proxy" in k.lower()},
     }
 
 

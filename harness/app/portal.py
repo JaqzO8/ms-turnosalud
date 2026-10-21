@@ -1,3 +1,4 @@
+import logging
 import os
 
 import httpx
@@ -7,11 +8,15 @@ from fastapi.responses import JSONResponse
 from app import tools
 from app.config import CONFIG
 
+logger = logging.getLogger("turnosalud.portal")
+
 
 def remote(request, method, path, body=None, params=None):
     token = request.cookies.get("turnosalud_session", "")
     try:
-        with httpx.Client(timeout=10, transport=tools._TRANSPORT) as client:
+        with httpx.Client(
+            timeout=10, transport=tools._TRANSPORT, trust_env=False
+        ) as client:
             result = client.request(
                 method,
                 CONFIG.MS_CITAS_URL + path,
@@ -19,7 +24,8 @@ def remote(request, method, path, body=None, params=None):
                 params=params,
                 headers={"Authorization": "Bearer " + token},
             )
-    except httpx.HTTPError:
+    except httpx.HTTPError as exc:
+        logger.warning("citas inalcanzable: %r url=%s", exc, CONFIG.MS_CITAS_URL + path)
         raise HTTPException(503, "El servicio de citas no está disponible.") from None
     return result
 
