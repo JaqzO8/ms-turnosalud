@@ -1,0 +1,38 @@
+# Operaciones manuales sobre el EC2 vía los mismos secrets que usa Deploy EC2.
+# Solo workflow_dispatch: no se ejecuta solo, la clave SSH nunca se imprime.
+name: Ops EC2
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Comando bash a ejecutar en la instancia (diagnóstico o sudo systemctl)"
+        required: true
+        default: "systemctl is-active citas.service harness.service agenda.service; journalctl -u citas.service -n 40 --no-pager"
+permissions:
+  contents: read
+concurrency:
+  group: ops-ec2
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Run command on EC2
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          REMOTE_CMD: ${{ inputs.command }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?Missing SSH_HOST}" "${SSH_USER:?Missing SSH_USER}"
+          : "${SSH_KEY:?Missing SSH_KEY}" "${SSH_KNOWN_HOSTS:?Missing SSH_KNOWN_HOSTS}"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          trap 'rm -f ~/.ssh/deploy_key' EXIT
+          printf '%s' "$REMOTE_CMD" | ssh -i ~/.ssh/deploy_key -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" bash
